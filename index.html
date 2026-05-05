@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Miche Nails & Beauty - Calculadora</title>
-    <meta name="description" content="Calculadora interactiva de precios para Miche Nails & Beauty. Cotiza tu manicure, pedicure y sistemas en tiempo real.">
+    <meta name="description" content="Calculadora interactiva de precios para Miche Nails & Beauty. Cotiza múltiples servicios en tiempo real.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,109 +31,20 @@
                 <span class="logo-accent">Miche</span> Nails & Beauty
             </div>
             <h1>Cotizador Móvil</h1>
-            <p class="subtitle">Calcula tu servicio en segundos</p>
+            <p class="subtitle">Calcula varios servicios en segundos</p>
         </header>
 
         <main class="content">
-            <!-- Accordion Sections -->
-            
-            <!-- 1. Servicio Principal -->
-            <div class="accordion-item open" id="section-main">
-                <div class="accordion-header" onclick="toggleAccordion('section-main')">
-                    <h2 class="section-title"><i data-lucide="sparkles"></i> 1. Servicio Principal</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="grid-cards" id="services-grid">
-                        <!-- Service cards will be injected here -->
-                    </div>
-                </div>
+            <!-- Services List Container -->
+            <div id="all-services-container">
+                <!-- Service blocks will be injected here -->
             </div>
 
-            <!-- 2. Selección de Largo (Conditional) -->
-            <div class="accordion-item hidden" id="length-section">
-                <div class="accordion-header" onclick="toggleAccordion('length-section')">
-                    <h2 class="section-title"><i data-lucide="maximize"></i> 2. Selección de Largo</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="grid-cards" id="length-grid">
-                        <!-- Length cards will be injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. Complejidad de Diseño -->
-            <div class="accordion-item" id="section-design">
-                <div class="accordion-header" onclick="toggleAccordion('section-design')">
-                    <h2 class="section-title"><i data-lucide="palette"></i> 3. Diseño</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="grid-cards" id="design-grid">
-                        <!-- Design cards will be injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Extras y Adicionales -->
-            <div class="accordion-item" id="section-extras">
-                <div class="accordion-header" onclick="toggleAccordion('section-extras')">
-                    <h2 class="section-title"><i data-lucide="plus-circle"></i> 4. Extras</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="list-options" id="extras-list">
-                        <!-- Checkbox options will be injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. Decoraciones (por uña) -->
-            <div class="accordion-item" id="section-decorations">
-                <div class="accordion-header" onclick="toggleAccordion('section-decorations')">
-                    <h2 class="section-title"><i data-lucide="gem"></i> 5. Decoraciones</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="counters-grid" id="decorations-list">
-                        <!-- Counter options will be injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. Tonos Adicionales -->
-            <div class="accordion-item" id="section-tones">
-                <div class="accordion-header" onclick="toggleAccordion('section-tones')">
-                    <h2 class="section-title"><i data-lucide="droplet"></i> 6. Tonos Extra</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="counter-item card">
-                        <div class="counter-info">
-                            <h3>Tonos Extra</h3>
-                            <p>$1.000 por tono</p>
-                        </div>
-                        <div class="counter-controls">
-                            <button class="btn-counter" onclick="updateTones(-1, event)"><i data-lucide="minus"></i></button>
-                            <span id="tones-count" class="count-value">0</span>
-                            <button class="btn-counter" onclick="updateTones(1, event)"><i data-lucide="plus"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7. Retiros -->
-            <div class="accordion-item" id="section-removals">
-                <div class="accordion-header" onclick="toggleAccordion('section-removals')">
-                    <h2 class="section-title"><i data-lucide="trash-2"></i> 7. Retiros</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="list-options" id="removals-list">
-                        <!-- Checkbox options will be injected here -->
-                    </div>
-                </div>
+            <!-- Add Service Button -->
+            <div class="add-service-section" style="margin: 20px 0; padding: 0 10px;">
+                <button class="btn-add-service" onclick="addNewService()">
+                    <i data-lucide="plus-circle"></i> + Agregar otro servicio
+                </button>
             </div>
         </main>
 
@@ -141,7 +52,7 @@
         <footer class="sticky-footer">
             <div class="total-bar">
                 <div class="total-display">
-                    <span class="total-label">Total:</span>
+                    <span class="total-label">TOTAL GENERAL:</span>
                     <span id="total-amount" class="total-value">$0</span>
                 </div>
                 <div class="actions">
@@ -178,10 +89,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=1.0.1"></script>
-    <script>
-        // Initialize Lucide Icons
-        lucide.createIcons();
-    </script>
+    <script src="app.js?v=1.0.2"></script>
 </body>
 </html>

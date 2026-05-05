@@ -386,8 +386,4 @@ h1 {
 }
 
 /* Print */
-@media print {
-    body * { visibility: hidden; }
-    #summary-modal, #summary-modal * { visibility: visible; }
-    #summary-modal { position: absolute; left: 0; top: 0; width: 100%; }
-}
+

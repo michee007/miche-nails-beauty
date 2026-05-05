@@ -41,267 +41,13 @@ const DATA = {
     extraTonePrice: 1000
 };
 
-// Current State
-let state = {
-    selectedService: null,
-    selectedLength: null,
-    selectedDesign: 'des-none',
-    selectedExtras: [],
-    selectedDecorations: {}, // { id: count }
-    extraTones: 0,
-    selectedRemovals: []
-};
+// Global State (Array of services)
+let servicesState = [];
 
-// DOM Elements
-const servicesGrid = document.getElementById('services-grid');
-const lengthSection = document.getElementById('length-section');
-const lengthGrid = document.getElementById('length-grid');
-const designGrid = document.getElementById('design-grid');
-const extrasList = document.getElementById('extras-list');
-const decorationsList = document.getElementById('decorations-list');
-const removalsList = document.getElementById('removals-list');
-const totalAmount = document.getElementById('total-amount');
-const tonesCount = document.getElementById('tones-count');
-
-// Initialize UI
-function init() {
-    renderServices();
-    renderDesigns();
-    renderExtras();
-    renderDecorations();
-    renderRemovals();
-    updateTotal();
-    lucide.createIcons();
-}
-
-function renderServices() {
-    servicesGrid.innerHTML = DATA.services.map(s => `
-        <div class="card ${state.selectedService?.id === s.id ? 'selected' : ''}" onclick="selectService('${s.id}')">
-            <h3>${s.name}</h3>
-            <p class="price">${s.price > 0 ? formatCurrency(s.price) : 'Desde ' + formatCurrency(Math.min(...Object.values(s.lengths)))}</p>
-        </div>
-    `).join('');
-}
-
-function renderDesigns() {
-    designGrid.innerHTML = DATA.designs.map(d => `
-        <div class="card ${state.selectedDesign === d.id ? 'selected' : ''}" onclick="selectDesign('${d.id}')">
-            <h3>${d.name}</h3>
-            <p class="price">${d.price > 0 ? '+' + formatCurrency(d.price) : 'Gratis'}</p>
-        </div>
-    `).join('');
-}
-
-function renderExtras() {
-    extrasList.innerHTML = DATA.extras.map(e => `
-        <div class="option-item ${state.selectedExtras.includes(e.id) ? 'selected' : ''}" onclick="toggleExtra('${e.id}')">
-            <div class="option-info">
-                <h3>${e.name}</h3>
-                <p>+ ${formatCurrency(e.price)}</p>
-            </div>
-            <i data-lucide="${state.selectedExtras.includes(e.id) ? 'check-circle' : 'circle'}"></i>
-        </div>
-    `).join('');
-    lucide.createIcons();
-}
-
-function renderDecorations() {
-    decorationsList.innerHTML = DATA.decorations.map(d => {
-        const count = state.selectedDecorations[d.id] || 0;
-        return `
-            <div class="counter-item">
-                <div class="counter-info">
-                    <h3>${d.name}</h3>
-                    <p>${formatCurrency(d.price)} c/u</p>
-                </div>
-                <div class="counter-controls">
-                    <button class="btn-counter" onclick="updateDeco('${d.id}', -1, event)"><i data-lucide="minus"></i></button>
-                    <span class="count-value">${count}</span>
-                    <button class="btn-counter" onclick="updateDeco('${d.id}', 1, event)"><i data-lucide="plus"></i></button>
-                </div>
-            </div>
-        `;
-    }).join('');
-    lucide.createIcons();
-}
-
-function renderRemovals() {
-    removalsList.innerHTML = DATA.removals.map(r => `
-        <div class="option-item ${state.selectedRemovals.includes(r.id) ? 'selected' : ''}" onclick="toggleRemoval('${r.id}')">
-            <div class="option-info">
-                <h3>${r.name}</h3>
-                <p>+ ${formatCurrency(r.price)}</p>
-            </div>
-            <i data-lucide="${state.selectedRemovals.includes(r.id) ? 'check-circle' : 'circle'}"></i>
-        </div>
-    `).join('');
-    lucide.createIcons();
-}
-
-// Logic Actions
-window.selectService = (id) => {
-    const service = DATA.services.find(s => s.id === id);
-    state.selectedService = service;
-    
-    if (service.hasLength) {
-        lengthSection.classList.remove('hidden');
-        // Default to 'short' if no length is selected yet
-        if (!state.selectedLength) {
-            state.selectedLength = 'short';
-        }
-        renderLengths(service);
-        openAccordion('length-section');
-    } else {
-        lengthSection.classList.add('hidden');
-        state.selectedLength = null;
-    }
-    
-    renderServices();
-    updateTotal();
-};
-
-function renderLengths(service) {
-    const lengths = [
-        { id: 'short', name: 'Cortas', price: service.lengths.short },
-        { id: 'medium', name: 'Medianas', price: service.lengths.medium },
-        { id: 'long', name: 'Largas', price: service.lengths.long }
-    ];
-    
-    lengthGrid.innerHTML = lengths.map(l => `
-        <div class="card ${state.selectedLength === l.id ? 'selected' : ''}" onclick="selectLength('${l.id}')">
-            <h3>${l.name}</h3>
-            <p class="price">${formatCurrency(l.price)}</p>
-        </div>
-    `).join('');
-}
-
-window.selectLength = (id) => {
-    state.selectedLength = id;
-    renderLengths(state.selectedService);
-    updateTotal();
-};
-
-window.selectDesign = (id) => {
-    state.selectedDesign = id;
-    renderDesigns();
-    updateTotal();
-};
-
-window.toggleExtra = (id) => {
-    if (state.selectedExtras.includes(id)) {
-        state.selectedExtras = state.selectedExtras.filter(e => e !== id);
-    } else {
-        state.selectedExtras.push(id);
-    }
-    renderExtras();
-    updateTotal();
-};
-
-window.updateDeco = (id, change, event) => {
-    if (event) event.stopPropagation();
-    const current = state.selectedDecorations[id] || 0;
-    const newVal = Math.max(0, current + change);
-    if (newVal === 0) {
-        delete state.selectedDecorations[id];
-    } else {
-        state.selectedDecorations[id] = newVal;
-    }
-    renderDecorations();
-    updateTotal();
-};
-
-window.updateTones = (change, event) => {
-    if (event) event.stopPropagation();
-    state.extraTones = Math.max(0, state.extraTones + change);
-    tonesCount.innerText = state.extraTones;
-    updateTotal();
-};
-
-window.toggleRemoval = (id) => {
-    if (state.selectedRemovals.includes(id)) {
-        state.selectedRemovals = state.selectedRemovals.filter(r => r !== id);
-    } else {
-        state.selectedRemovals.push(id);
-    }
-    renderRemovals();
-    updateTotal();
-};
-
-// Accordion Logic
-window.toggleAccordion = (id) => {
-    const item = document.getElementById(id);
-    const isOpen = item.classList.contains('open');
-    
-    // Close all others if you want a true accordion (optional)
-    // document.querySelectorAll('.accordion-item').forEach(el => el.classList.remove('open'));
-    
-    if (isOpen) {
-        item.classList.remove('open');
-    } else {
-        item.classList.add('open');
-    }
-};
-
-function openAccordion(id) {
-    const item = document.getElementById(id);
-    if (item) item.classList.add('open');
-}
-
-// Calculations
-function updateTotal() {
-    let total = 0;
-    
-    // 1. Service
-    if (state.selectedService) {
-        if (state.selectedService.hasLength) {
-            // Ensure we have a length if the service requires it
-            const lengthKey = state.selectedLength || 'short';
-            const price = state.selectedService.lengths[lengthKey];
-            if (price) total += price;
-        } else {
-            total += (state.selectedService.price || 0);
-        }
-    }
-    
-    // 2. Design
-    const design = DATA.designs.find(d => d.id === state.selectedDesign);
-    if (design) total += design.price;
-    
-    // 3. Extras
-    state.selectedExtras.forEach(id => {
-        const extra = DATA.extras.find(e => e.id === id);
-        if (extra) total += extra.price;
-    });
-    
-    // 4. Decorations
-    for (const [id, count] of Object.entries(state.selectedDecorations)) {
-        const deco = DATA.decorations.find(d => d.id === id);
-        if (deco) total += (deco.price * count);
-    }
-    
-    // 5. Extra Tones
-    total += (state.extraTones * DATA.extraTonePrice);
-    
-    // 6. Removals
-    state.selectedRemovals.forEach(id => {
-        const removal = DATA.removals.find(r => r.id === id);
-        if (removal) total += removal.price;
-    });
-    
-    totalAmount.innerText = formatCurrency(total);
-}
-
-// Helpers
-function formatCurrency(value) {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0
-    }).format(value).replace('COP', '').trim();
-}
-
-window.resetAll = () => {
-    state = {
+// Initialize first service
+function createInitialServiceState() {
+    return {
+        id: Date.now() + Math.random(),
         selectedService: null,
         selectedLength: null,
         selectedDesign: 'des-none',
@@ -310,72 +56,373 @@ window.resetAll = () => {
         extraTones: 0,
         selectedRemovals: []
     };
-    lengthSection.classList.add('hidden');
-    tonesCount.innerText = '0';
-    
-    // Close all accordions except the first one
-    document.querySelectorAll('.accordion-item').forEach((el, index) => {
-        if (index === 0) el.classList.add('open');
-        else el.classList.remove('open');
+}
+
+// DOM Elements
+const servicesContainer = document.getElementById('all-services-container');
+const totalAmountEl = document.getElementById('total-amount');
+
+// Initialize
+function init() {
+    if (servicesState.length === 0) {
+        servicesState.push(createInitialServiceState());
+    }
+    renderAll();
+}
+
+// Rendering Logic
+function renderAll() {
+    servicesContainer.innerHTML = '';
+    let grandTotal = 0;
+
+    servicesState.forEach((state, index) => {
+        const subtotal = calculateSubtotal(state);
+        grandTotal += subtotal;
+
+        const block = document.createElement('div');
+        block.className = 'service-block';
+        block.innerHTML = `
+            <div class="service-block-header">
+                <span class="service-block-title">Servicio #${index + 1}</span>
+                ${servicesState.length > 1 ? `
+                    <button class="btn-delete-service" onclick="removeService(${index})">
+                        <i data-lucide="trash-2" style="width:18px"></i>
+                    </button>
+                ` : ''}
+            </div>
+            
+            <!-- 1. Servicio Principal -->
+            <div class="accordion-item open" id="section-main-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('section-main-${index}')">
+                    <h2 class="section-title"><i data-lucide="sparkles"></i> 1. Servicio Principal</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="grid-cards">
+                        ${DATA.services.map(s => `
+                            <div class="card ${state.selectedService?.id === s.id ? 'selected' : ''}" onclick="selectService(${index}, '${s.id}')">
+                                <h3>${s.name}</h3>
+                                <p class="price">${s.price > 0 ? formatCurrency(s.price) : 'Desde ' + formatCurrency(Math.min(...Object.values(s.lengths)))}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Selección de Largo -->
+            <div class="accordion-item ${state.selectedService?.hasLength ? '' : 'hidden'}" id="length-section-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('length-section-${index}')">
+                    <h2 class="section-title"><i data-lucide="maximize"></i> 2. Selección de Largo</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="grid-cards">
+                        ${state.selectedService?.hasLength ? renderLengthsHtml(index, state) : ''}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Diseño -->
+            <div class="accordion-item" id="section-design-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('section-design-${index}')">
+                    <h2 class="section-title"><i data-lucide="palette"></i> 3. Diseño</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="grid-cards">
+                        ${DATA.designs.map(d => `
+                            <div class="card ${state.selectedDesign === d.id ? 'selected' : ''}" onclick="selectDesign(${index}, '${d.id}')">
+                                <h3>${d.name}</h3>
+                                <p class="price">${d.price > 0 ? '+' + formatCurrency(d.price) : 'Gratis'}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Extras -->
+            <div class="accordion-item" id="section-extras-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('section-extras-${index}')">
+                    <h2 class="section-title"><i data-lucide="plus-circle"></i> 4. Extras</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="list-options">
+                        ${DATA.extras.map(e => `
+                            <div class="option-item ${state.selectedExtras.includes(e.id) ? 'selected' : ''}" onclick="toggleExtra(${index}, '${e.id}')">
+                                <div class="option-info">
+                                    <h3>${e.name}</h3>
+                                    <p>+ ${formatCurrency(e.price)}</p>
+                                </div>
+                                <i data-lucide="${state.selectedExtras.includes(e.id) ? 'check-circle' : 'circle'}"></i>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Decoraciones -->
+            <div class="accordion-item" id="section-decorations-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('section-decorations-${index}')">
+                    <h2 class="section-title"><i data-lucide="gem"></i> 5. Decoraciones</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="counters-grid">
+                        ${DATA.decorations.map(d => {
+                            const count = state.selectedDecorations[d.id] || 0;
+                            return `
+                                <div class="counter-item">
+                                    <div class="counter-info">
+                                        <h3>${d.name}</h3>
+                                        <p>${formatCurrency(d.price)} c/u</p>
+                                    </div>
+                                    <div class="counter-controls">
+                                        <button class="btn-counter" onclick="updateDeco(${index}, '${d.id}', -1)"><i data-lucide="minus"></i></button>
+                                        <span class="count-value">${count}</span>
+                                        <button class="btn-counter" onclick="updateDeco(${index}, '${d.id}', 1)"><i data-lucide="plus"></i></button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Tonos Extra -->
+            <div class="accordion-item" id="section-tones-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('section-tones-${index}')">
+                    <h2 class="section-title"><i data-lucide="droplet"></i> 6. Tonos Extra</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="counter-item">
+                        <div class="counter-info">
+                            <h3>Tonos Extra</h3>
+                            <p>$1.000 por tono</p>
+                        </div>
+                        <div class="counter-controls">
+                            <button class="btn-counter" onclick="updateTones(${index}, -1)"><i data-lucide="minus"></i></button>
+                            <span class="count-value">${state.extraTones}</span>
+                            <button class="btn-counter" onclick="updateTones(${index}, 1)"><i data-lucide="plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Retiros -->
+            <div class="accordion-item" id="section-removals-${index}">
+                <div class="accordion-header" onclick="toggleAccordion('section-removals-${index}')">
+                    <h2 class="section-title"><i data-lucide="trash-2"></i> 7. Retiros</h2>
+                    <i data-lucide="chevron-down" class="chevron"></i>
+                </div>
+                <div class="accordion-content">
+                    <div class="list-options">
+                        ${DATA.removals.map(r => `
+                            <div class="option-item ${state.selectedRemovals.includes(r.id) ? 'selected' : ''}" onclick="toggleRemoval(${index}, '${r.id}')">
+                                <div class="option-info">
+                                    <h3>${r.name}</h3>
+                                    <p>+ ${formatCurrency(r.price)}</p>
+                                </div>
+                                <i data-lucide="${state.selectedRemovals.includes(r.id) ? 'check-circle' : 'circle'}"></i>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: right; padding: 10px; font-weight: 600; color: var(--primary);">
+                Subtotal Servicio #${index + 1}: ${formatCurrency(subtotal)}
+            </div>
+        `;
+        servicesContainer.appendChild(block);
     });
+
+    totalAmountEl.innerText = formatCurrency(grandTotal);
+    lucide.createIcons();
+}
+
+function renderLengthsHtml(index, state) {
+    const s = state.selectedService;
+    const lengths = [
+        { id: 'short', name: 'Cortas', price: s.lengths.short },
+        { id: 'medium', name: 'Medianas', price: s.lengths.medium },
+        { id: 'long', name: 'Largas', price: s.lengths.long }
+    ];
+    return lengths.map(l => `
+        <div class="card ${state.selectedLength === l.id ? 'selected' : ''}" onclick="selectLength(${index}, '${l.id}')">
+            <h3>${l.name}</h3>
+            <p class="price">${formatCurrency(l.price)}</p>
+        </div>
+    `).join('');
+}
+
+// Logic Actions
+window.addNewService = () => {
+    servicesState.push(createInitialServiceState());
+    renderAll();
+};
+
+window.removeService = (index) => {
+    servicesState.splice(index, 1);
+    renderAll();
+};
+
+window.selectService = (index, id) => {
+    const service = DATA.services.find(s => s.id === id);
+    const state = servicesState[index];
+    state.selectedService = service;
     
-    init();
+    if (service.hasLength) {
+        if (!state.selectedLength) state.selectedLength = 'short';
+        openAccordion(`length-section-${index}`);
+    } else {
+        state.selectedLength = null;
+    }
+    renderAll();
+};
+
+window.selectLength = (index, id) => {
+    servicesState[index].selectedLength = id;
+    renderAll();
+};
+
+window.selectDesign = (index, id) => {
+    servicesState[index].selectedDesign = id;
+    renderAll();
+};
+
+window.toggleExtra = (index, id) => {
+    const state = servicesState[index];
+    if (state.selectedExtras.includes(id)) {
+        state.selectedExtras = state.selectedExtras.filter(e => e !== id);
+    } else {
+        state.selectedExtras.push(id);
+    }
+    renderAll();
+};
+
+window.updateDeco = (index, id, change) => {
+    const state = servicesState[index];
+    const current = state.selectedDecorations[id] || 0;
+    const newVal = Math.max(0, current + change);
+    if (newVal === 0) delete state.selectedDecorations[id];
+    else state.selectedDecorations[id] = newVal;
+    renderAll();
+};
+
+window.updateTones = (index, change) => {
+    const state = servicesState[index];
+    state.extraTones = Math.max(0, state.extraTones + change);
+    renderAll();
+};
+
+window.toggleRemoval = (index, id) => {
+    const state = servicesState[index];
+    if (state.selectedRemovals.includes(id)) {
+        state.selectedRemovals = state.selectedRemovals.filter(r => r !== id);
+    } else {
+        state.selectedRemovals.push(id);
+    }
+    renderAll();
+};
+
+// Utilities
+function calculateSubtotal(state) {
+    let total = 0;
+    if (state.selectedService) {
+        if (state.selectedService.hasLength) {
+            const lengthKey = state.selectedLength || 'short';
+            total += state.selectedService.lengths[lengthKey];
+        } else {
+            total += state.selectedService.price;
+        }
+    }
+    const design = DATA.designs.find(d => d.id === state.selectedDesign);
+    if (design) total += design.price;
+    state.selectedExtras.forEach(id => {
+        const extra = DATA.extras.find(e => e.id === id);
+        if (extra) total += extra.price;
+    });
+    for (const [id, count] of Object.entries(state.selectedDecorations)) {
+        const deco = DATA.decorations.find(d => d.id === id);
+        if (deco) total += (deco.price * count);
+    }
+    total += (state.extraTones * DATA.extraTonePrice);
+    state.selectedRemovals.forEach(id => {
+        const removal = DATA.removals.find(r => r.id === id);
+        if (removal) total += removal.price;
+    });
+    return total;
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
+    }).format(value).replace('COP', '').trim();
+}
+
+window.toggleAccordion = (id) => {
+    const item = document.getElementById(id);
+    if (item) item.classList.toggle('open');
+};
+
+function openAccordion(id) {
+    const item = document.getElementById(id);
+    if (item) item.classList.add('open');
+}
+
+window.resetAll = () => {
+    if (confirm('¿Deseas reiniciar toda la cotización?')) {
+        servicesState = [createInitialServiceState()];
+        renderAll();
+    }
 };
 
 // Modal Summary
 window.showSummary = () => {
     const modal = document.getElementById('summary-modal');
     const details = document.getElementById('summary-details');
-    
     let html = '';
-    let total = 0;
-    
-    // Service
-    if (state.selectedService) {
-        const price = state.selectedService.hasLength && state.selectedLength 
-            ? state.selectedService.lengths[state.selectedLength] 
-            : state.selectedService.price;
-        const name = state.selectedService.name + (state.selectedLength ? ` (${state.selectedLength})` : '');
-        html += `<div class="summary-item"><span>${name}</span><span>${formatCurrency(price)}</span></div>`;
-        total += price;
-    }
-    
-    // Design
-    const design = DATA.designs.find(d => d.id === state.selectedDesign);
-    if (design && design.price > 0) {
-        html += `<div class="summary-item"><span>Diseño: ${design.name}</span><span>${formatCurrency(design.price)}</span></div>`;
-        total += design.price;
-    }
-    
-    // Extras
-    state.selectedExtras.forEach(id => {
-        const extra = DATA.extras.find(e => e.id === id);
-        html += `<div class="summary-item"><span>Extra: ${extra.name}</span><span>${formatCurrency(extra.price)}</span></div>`;
-        total += extra.price;
+    let grandTotal = 0;
+
+    servicesState.forEach((state, index) => {
+        if (!state.selectedService) return;
+        const subtotal = calculateSubtotal(state);
+        grandTotal += subtotal;
+
+        html += `<div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <h3 style="color: var(--primary); font-size: 1rem;">SERVICIO #${index + 1}: ${state.selectedService.name}</h3>`;
+
+        const servicePrice = state.selectedService.hasLength ? state.selectedService.lengths[state.selectedLength] : state.selectedService.price;
+        html += `<div class="summary-item"><span>${state.selectedService.name} ${state.selectedLength ? '('+state.selectedLength+')' : ''}</span><span>${formatCurrency(servicePrice)}</span></div>`;
+
+        const design = DATA.designs.find(d => d.id === state.selectedDesign);
+        if (design && design.price > 0) html += `<div class="summary-item"><span>Diseño: ${design.name}</span><span>${formatCurrency(design.price)}</span></div>`;
+
+        state.selectedExtras.forEach(id => {
+            const e = DATA.extras.find(x => x.id === id);
+            html += `<div class="summary-item"><span>Extra: ${e.name}</span><span>${formatCurrency(e.price)}</span></div>`;
+        });
+
+        for (const [id, count] of Object.entries(state.selectedDecorations)) {
+            const d = DATA.decorations.find(x => x.id === id);
+            html += `<div class="summary-item"><span>${d.name} (x${count})</span><span>${formatCurrency(d.price * count)}</span></div>`;
+        }
+
+        if (state.extraTones > 0) html += `<div class="summary-item"><span>Tonos Extra (x${state.extraTones})</span><span>${formatCurrency(state.extraTones * DATA.extraTonePrice)}</span></div>`;
+
+        state.selectedRemovals.forEach(id => {
+            const r = DATA.removals.find(x => x.id === id);
+            html += `<div class="summary-item"><span>${r.name}</span><span>${formatCurrency(r.price)}</span></div>`;
+        });
+
+        html += `<div class="summary-item" style="font-weight:700"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div></div>`;
     });
-    
-    // Decorations
-    for (const [id, count] of Object.entries(state.selectedDecorations)) {
-        const deco = DATA.decorations.find(d => d.id === id);
-        html += `<div class="summary-item"><span>${deco.name} (x${count})</span><span>${formatCurrency(deco.price * count)}</span></div>`;
-        total += (deco.price * count);
-    }
-    
-    // Tones
-    if (state.extraTones > 0) {
-        html += `<div class="summary-item"><span>Tonos Extra (x${state.extraTones})</span><span>${formatCurrency(state.extraTones * DATA.extraTonePrice)}</span></div>`;
-        total += (state.extraTones * DATA.extraTonePrice);
-    }
-    
-    // Removals
-    state.selectedRemovals.forEach(id => {
-        const removal = DATA.removals.find(r => r.id === id);
-        html += `<div class="summary-item"><span>${removal.name}</span><span>${formatCurrency(removal.price)}</span></div>`;
-        total += removal.price;
-    } );
-    
-    html += `<div class="summary-item total"><span>TOTAL ESTIMADO</span><span>${formatCurrency(total)}</span></div>`;
-    
+
+    html += `<div class="summary-item total"><span>TOTAL GENERAL</span><span>${formatCurrency(grandTotal)}</span></div>`;
     details.innerHTML = html || '<p>No se han seleccionado servicios aún.</p>';
     modal.style.display = 'block';
 };
@@ -385,19 +432,18 @@ window.closeSummary = () => {
 };
 
 window.copySummary = () => {
-    const details = document.getElementById('summary-details');
-    const text = `🌸 Miche Nails & Beauty - Cotización 🌸\n\n` + 
-        Array.from(details.querySelectorAll('.summary-item'))
-        .map(item => {
-            const spans = item.querySelectorAll('span');
-            return `${spans[0].innerText}: ${spans[1].innerText}`;
-        })
-        .join('\n') + 
-        `\n\n¡Espero verte pronto! ✨`;
-    
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Resumen copiado para compartir 🌸');
+    let grandTotal = 0;
+    let text = `🌸 Miche Nails & Beauty - Cotización 🌸\n\n`;
+
+    servicesState.forEach((state, index) => {
+        if (!state.selectedService) return;
+        const sub = calculateSubtotal(state);
+        grandTotal += sub;
+        text += `• SERVICIO #${index+1}: ${state.selectedService.name} -> ${formatCurrency(sub)}\n`;
     });
+
+    text += `\n✨ TOTAL GENERAL: ${formatCurrency(grandTotal)}\n\n¡Espero verte pronto! ✨`;
+    navigator.clipboard.writeText(text).then(() => alert('Resumen copiado para compartir 🌸'));
 };
 
 // Start App
