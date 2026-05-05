@@ -145,6 +145,10 @@ window.selectService = (id) => {
     
     if (service.hasLength) {
         lengthSection.classList.remove('hidden');
+        // Default to 'short' if no length is selected yet
+        if (!state.selectedLength) {
+            state.selectedLength = 'short';
+        }
         renderLengths(service);
         openAccordion('length-section');
     } else {
