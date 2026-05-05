@@ -1,0 +1,17 @@
+{
+  "name": "Miche Nails & Beauty - Calculadora",
+  "short_name": "Miche Nails",
+  "description": "Calculadora de precios para servicios de uñas y belleza.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#fdf8f5",
+  "theme_color": "#c5a059",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
