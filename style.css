@@ -439,58 +439,66 @@ h1 {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Print Optimization */
+/* Print Optimization - FIXED */
 @media print {
-    /* Hide EVERYTHING using display none so it takes NO space */
-    body * { 
-        display: none !important; 
-    }
-    
-    /* Show ONLY the modal content and its children */
-    #summary-modal, 
-    #summary-modal .modal-content,
-    #summary-modal #summary-details, 
-    #summary-modal #summary-details * { 
-        display: block !important;
-        visibility: visible !important;
+    /* Hide non-essential sections */
+    .main-header, 
+    .add-service-section, 
+    .sticky-footer, 
+    .modal-header, 
+    .close-modal, 
+    .modal-footer {
+        display: none !important;
     }
 
-    /* Reset positions to avoid extra pages */
-    html, body {
-        height: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-    }
-
-    #summary-modal {
-        position: static !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
+    body {
         background: white !important;
     }
 
-    .modal-content {
+    .app-container {
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    /* Keep the modal container but reset its modal-like appearance */
+    .modal {
+        display: block !important;
         position: static !important;
-        box-shadow: none !important;
-        border: none !important;
+        background: white !important;
+        padding: 0 !important;
+        visibility: visible !important;
+    }
+
+    .modal-content {
+        display: block !important;
+        position: static !important;
         width: 100% !important;
         max-width: 100% !important;
-        padding: 10px !important;
         margin: 0 !important;
-        overflow: visible !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        visibility: visible !important;
+    }
+
+    #summary-details, #summary-details * {
+        visibility: visible !important;
     }
 
     .summary-item {
+        display: flex !important;
+        justify-content: space-between !important;
         border-bottom: 1px solid #eee !important;
         padding: 8px 0 !important;
-        page-break-inside: avoid;
     }
 
-    /* Force no extra pages */
+    /* Ensure other content is hidden */
+    #all-services-container {
+        display: none !important;
+    }
+
     @page {
+        margin: 1cm;
         size: auto;
-        margin: 5mm;
     }
 }
