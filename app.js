@@ -254,11 +254,12 @@ function updateTotal() {
     // 1. Service
     if (state.selectedService) {
         if (state.selectedService.hasLength) {
-            if (state.selectedLength) {
-                total += state.selectedService.lengths[state.selectedLength];
-            }
+            // Ensure we have a length if the service requires it
+            const lengthKey = state.selectedLength || 'short';
+            const price = state.selectedService.lengths[lengthKey];
+            if (price) total += price;
         } else {
-            total += state.selectedService.price;
+            total += (state.selectedService.price || 0);
         }
     }
     
