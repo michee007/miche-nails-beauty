@@ -7,7 +7,7 @@ const DATA = {
         { id: 'soft', name: 'Soft Gel', price: 0, category: 'SOFT GEL', hasLength: true, lengths: { short: 60000, medium: 70000, long: 80000 } },
         { id: 'acryl', name: 'Acrílico', price: 0, category: 'ACRÍLICO', hasLength: true, lengths: { short: 70000, medium: 85000, long: 95000 } },
         { id: 'ped-trad', name: 'Pedicura Tradicional', price: 15000, category: 'PEDICURA' },
-        { id: 'ped-semi', name: 'Pedicura Semipermanente', price: 30000, category: 'PEDICURA' }
+        { id: 'ped-semi', name: 'Pedicura Semipermanente', price: 35000, category: 'PEDICURA' }
     ],
     designs: [
         { id: 'des-none', name: 'Sin diseño', price: 0 },
@@ -41,7 +41,7 @@ const DATA = {
     extraTonePrice: 1000
 };
 
-// Global State (Array of services)
+// Global State
 let servicesState = [];
 
 // Initialize first service
@@ -231,7 +231,7 @@ function renderAll() {
                 </div>
             </div>
 
-            <div style="text-align: right; padding: 10px; font-weight: 600; color: var(--primary);">
+            <div style="text-align: right; padding: 10px 15px; font-weight: 700; color: var(--gold-dark); font-size: 0.9rem;">
                 Subtotal Servicio #${index + 1}: ${formatCurrency(subtotal)}
             </div>
         `;
@@ -261,11 +261,17 @@ function renderLengthsHtml(index, state) {
 window.addNewService = () => {
     servicesState.push(createInitialServiceState());
     renderAll();
+    // Scroll to new service
+    setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
 };
 
 window.removeService = (index) => {
-    servicesState.splice(index, 1);
-    renderAll();
+    if (confirm('¿Eliminar este servicio?')) {
+        servicesState.splice(index, 1);
+        renderAll();
+    }
 };
 
 window.selectService = (index, id) => {
@@ -275,16 +281,20 @@ window.selectService = (index, id) => {
     
     if (service.hasLength) {
         if (!state.selectedLength) state.selectedLength = 'short';
+        renderAll();
         openAccordion(`length-section-${index}`);
     } else {
         state.selectedLength = null;
+        renderAll();
+        // Skip length and open design
+        openAccordion(`section-design-${index}`);
     }
-    renderAll();
 };
 
 window.selectLength = (index, id) => {
     servicesState[index].selectedLength = id;
     renderAll();
+    openAccordion(`section-design-${index}`);
 };
 
 window.selectDesign = (index, id) => {
@@ -366,18 +376,26 @@ function formatCurrency(value) {
 
 window.toggleAccordion = (id) => {
     const item = document.getElementById(id);
-    if (item) item.classList.toggle('open');
+    if (item) {
+        const isOpen = item.classList.contains('open');
+        // Close others in same service block if needed? No, better keep current flow.
+        item.classList.toggle('open');
+    }
 };
 
 function openAccordion(id) {
     const item = document.getElementById(id);
-    if (item) item.classList.add('open');
+    if (item) {
+        item.classList.add('open');
+        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 window.resetAll = () => {
     if (confirm('¿Deseas reiniciar toda la cotización?')) {
         servicesState = [createInitialServiceState()];
         renderAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 };
 
@@ -387,44 +405,54 @@ window.showSummary = () => {
     const details = document.getElementById('summary-details');
     let html = '';
     let grandTotal = 0;
+    let servicesFound = false;
 
     servicesState.forEach((state, index) => {
         if (!state.selectedService) return;
+        servicesFound = true;
         const subtotal = calculateSubtotal(state);
         grandTotal += subtotal;
 
-        html += `<div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            <h3 style="color: var(--primary); font-size: 1rem;">SERVICIO #${index + 1}: ${state.selectedService.name}</h3>`;
+        html += `<div class="ticket-service">
+            <h3 style="color: var(--gold-dark); font-size: 0.9rem; margin-top: 15px; text-transform: uppercase;">#${index + 1} - ${state.selectedService.name}</h3>`;
 
         const servicePrice = state.selectedService.hasLength ? state.selectedService.lengths[state.selectedLength] : state.selectedService.price;
-        html += `<div class="summary-item"><span>${state.selectedService.name} ${state.selectedLength ? '('+state.selectedLength+')' : ''}</span><span>${formatCurrency(servicePrice)}</span></div>`;
+        const lengthName = state.selectedLength ? (state.selectedLength === 'short' ? 'Cortas' : state.selectedLength === 'medium' ? 'Medianas' : 'Largas') : '';
+        
+        html += `<div class="summary-item"><span class="item-label">${state.selectedService.name} ${lengthName ? '('+lengthName+')' : ''}</span><span class="item-price">${formatCurrency(servicePrice)}</span></div>`;
 
         const design = DATA.designs.find(d => d.id === state.selectedDesign);
-        if (design && design.price > 0) html += `<div class="summary-item"><span>Diseño: ${design.name}</span><span>${formatCurrency(design.price)}</span></div>`;
+        if (design && design.price > 0) html += `<div class="summary-item"><span class="item-label">Diseño: ${design.name}</span><span class="item-price">+ ${formatCurrency(design.price)}</span></div>`;
 
         state.selectedExtras.forEach(id => {
             const e = DATA.extras.find(x => x.id === id);
-            html += `<div class="summary-item"><span>Extra: ${e.name}</span><span>${formatCurrency(e.price)}</span></div>`;
+            html += `<div class="summary-item"><span class="item-label">Extra: ${e.name}</span><span class="item-price">+ ${formatCurrency(e.price)}</span></div>`;
         });
 
         for (const [id, count] of Object.entries(state.selectedDecorations)) {
             const d = DATA.decorations.find(x => x.id === id);
-            html += `<div class="summary-item"><span>${d.name} (x${count})</span><span>${formatCurrency(d.price * count)}</span></div>`;
+            html += `<div class="summary-item"><span class="item-label">${d.name} (x${count})</span><span class="item-price">+ ${formatCurrency(d.price * count)}</span></div>`;
         }
 
-        if (state.extraTones > 0) html += `<div class="summary-item"><span>Tonos Extra (x${state.extraTones})</span><span>${formatCurrency(state.extraTones * DATA.extraTonePrice)}</span></div>`;
+        if (state.extraTones > 0) html += `<div class="summary-item"><span class="item-label">Tonos Extra (x${state.extraTones})</span><span class="item-price">+ ${formatCurrency(state.extraTones * DATA.extraTonePrice)}</span></div>`;
 
         state.selectedRemovals.forEach(id => {
             const r = DATA.removals.find(x => x.id === id);
-            html += `<div class="summary-item"><span>${r.name}</span><span>${formatCurrency(r.price)}</span></div>`;
+            html += `<div class="summary-item"><span class="item-label">${r.name}</span><span class="item-price">+ ${formatCurrency(r.price)}</span></div>`;
         });
 
-        html += `<div class="summary-item" style="font-weight:700"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div></div>`;
+        html += `<div class="summary-item" style="font-weight:700; border-top: 1px dotted var(--gold-light); margin-top: 5px; padding-top: 5px;"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div></div>`;
     });
 
-    html += `<div class="summary-item total"><span>TOTAL GENERAL</span><span>${formatCurrency(grandTotal)}</span></div>`;
-    details.innerHTML = html || '<p>No se han seleccionado servicios aún.</p>';
+    if (!servicesFound) {
+        details.innerHTML = '<p style="text-align:center; padding: 20px;">No has seleccionado ningún servicio todavía 🌸</p>';
+    } else {
+        html += `<div class="summary-item total"><span>INVERSIÓN TOTAL</span><span>${formatCurrency(grandTotal)}</span></div>`;
+        details.innerHTML = html;
+    }
+    
     modal.style.display = 'block';
+    lucide.createIcons();
 };
 
 window.closeSummary = () => {
@@ -433,17 +461,77 @@ window.closeSummary = () => {
 
 window.copySummary = () => {
     let grandTotal = 0;
-    let text = `🌸 Miche Nails & Beauty - Cotización 🌸\n\n`;
+    let text = `🌸 *Miche Nails & Beauty* 🌸\n*Mi Cotización*\n---------------------------\n`;
 
     servicesState.forEach((state, index) => {
         if (!state.selectedService) return;
         const sub = calculateSubtotal(state);
         grandTotal += sub;
-        text += `• SERVICIO #${index+1}: ${state.selectedService.name} -> ${formatCurrency(sub)}\n`;
+        text += `✨ *Servicio #${index+1}*: ${state.selectedService.name}\n   Subtotal: ${formatCurrency(sub)}\n`;
     });
 
-    text += `\n✨ TOTAL GENERAL: ${formatCurrency(grandTotal)}\n\n¡Espero verte pronto! ✨`;
-    navigator.clipboard.writeText(text).then(() => alert('Resumen copiado para compartir 🌸'));
+    text += `---------------------------\n💰 *TOTAL*: ${formatCurrency(grandTotal)}\n\n¡Espero verte pronto! ✨`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.currentTarget;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="check"></i> Copiado';
+        lucide.createIcons();
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            lucide.createIcons();
+        }, 2000);
+    });
+};
+
+window.shareWhatsApp = () => {
+    let grandTotal = 0;
+    let text = `Hola *Miche Nails & Beauty*! 🌸\n\nHe realizado una cotización en tu App:\n\n`;
+
+    servicesState.forEach((state, index) => {
+        if (!state.selectedService) return;
+        const sub = calculateSubtotal(state);
+        grandTotal += sub;
+        
+        const lengthName = state.selectedLength ? (state.selectedLength === 'short' ? 'Cortas' : state.selectedLength === 'medium' ? 'Medianas' : 'Largas') : '';
+        
+        text += `📌 *${state.selectedService.name}* ${lengthName ? '['+lengthName+']' : ''}\n`;
+        
+        const design = DATA.designs.find(d => d.id === state.selectedDesign);
+        if (design && design.price > 0) text += `   - Diseño: ${design.name}\n`;
+        
+        state.selectedExtras.forEach(id => {
+            const e = DATA.extras.find(x => x.id === id);
+            text += `   - Extra: ${e.name}\n`;
+        });
+
+        for (const [id, count] of Object.entries(state.selectedDecorations)) {
+            const d = DATA.decorations.find(x => x.id === id);
+            text += `   - ${d.name} (x${count})\n`;
+        }
+
+        if (state.extraTones > 0) text += `   - Tonos Extra (x${state.extraTones})\n`;
+
+        state.selectedRemovals.forEach(id => {
+            const r = DATA.removals.find(x => x.id === id);
+            text += `   - ${r.name}\n`;
+        });
+        
+        text += `   *Subtotal:* ${formatCurrency(sub)}\n\n`;
+    });
+
+    text += `💎 *TOTAL ESTIMADO*: ${formatCurrency(grandTotal)}\n\n¿Tienes disponibilidad para agendar? ✨`;
+    
+    const encodedText = encodeURIComponent(text);
+    window.open(`https://wa.me/573000000000?text=${encodedText}`, '_blank'); // Replace with actual number if provided
+};
+
+// Close modal when clicking outside
+window.onclick = (event) => {
+    const modal = document.getElementById('summary-modal');
+    if (event.target == modal) {
+        closeSummary();
+    }
 };
 
 // Start App

@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Miche Nails & Beauty - Calculadora</title>
-    <meta name="description" content="Calculadora interactiva de precios para Miche Nails & Beauty. Cotiza múltiples servicios en tiempo real.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Miche Nails & Beauty - Cotizador Premium</title>
+    <meta name="description" content="Calculadora interactiva de servicios para Miche Nails & Beauty.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     
     <!-- PWA & Mobile Optimization -->
     <link rel="manifest" href="manifest.json">
@@ -30,8 +30,8 @@
             <div class="logo">
                 <span class="logo-accent">Miche</span> Nails & Beauty
             </div>
-            <h1>Cotizador Móvil</h1>
-            <p class="subtitle">Calcula varios servicios en segundos</p>
+            <h1>Cotizador Profesional</h1>
+            <p class="subtitle">Personaliza y calcula tu presupuesto ideal</p>
         </header>
 
         <main class="content">
@@ -41,9 +41,9 @@
             </div>
 
             <!-- Add Service Button -->
-            <div class="add-service-section" style="margin: 20px 0; padding: 0 10px;">
+            <div class="add-service-section">
                 <button class="btn-add-service" onclick="addNewService()">
-                    <i data-lucide="plus-circle"></i> + Agregar otro servicio
+                    <i data-lucide="plus-circle"></i> Agregar otro servicio
                 </button>
             </div>
         </main>
@@ -52,15 +52,15 @@
         <footer class="sticky-footer">
             <div class="total-bar">
                 <div class="total-display">
-                    <span class="total-label">TOTAL GENERAL:</span>
+                    <span class="total-label">Inversión Total</span>
                     <span id="total-amount" class="total-value">$0</span>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-secondary" onclick="resetAll()">
+                    <button class="btn btn-secondary" onclick="resetAll()" title="Reiniciar">
                         <i data-lucide="rotate-ccw"></i>
                     </button>
                     <button class="btn btn-primary" onclick="showSummary()">
-                        <i data-lucide="file-text"></i> Cotizar
+                        <i data-lucide="sparkles"></i> Cotizar
                     </button>
                 </div>
             </div>
@@ -70,25 +70,41 @@
         <div id="summary-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Mi Cotización</h2>
-                    <button class="close-modal" onclick="closeSummary()">&times;</button>
+                    <h2>Resumen de Cotización</h2>
+                    <button class="btn btn-secondary" style="width: 40px; padding: 0;" onclick="closeSummary()">&times;</button>
                 </div>
-                <div id="summary-details" class="modal-body">
-                    <!-- Summary content will be injected here -->
+                
+                <div class="modal-body">
+                    <div id="summary-ticket" class="ticket">
+                        <div class="ticket-header">
+                            <div class="ticket-logo">Miche Nails & Beauty</div>
+                            <p class="subtitle">Gracias por elegirnos</p>
+                        </div>
+                        <div class="ticket-divider"></div>
+                        <div id="summary-details">
+                            <!-- Details injected here -->
+                        </div>
+                    </div>
                 </div>
+
                 <div class="modal-footer vertical">
-                    <button class="btn btn-primary w-full" onclick="copySummary()">
-                        <i data-lucide="copy"></i> Copiar Resumen
+                    <button class="btn btn-whatsapp w-full" onclick="shareWhatsApp()">
+                        <i data-lucide="message-circle"></i> Agendar por WhatsApp
                     </button>
-                    <button class="btn btn-outline w-full" onclick="window.print()">
-                        <i data-lucide="printer"></i> Imprimir / PDF
-                    </button>
-                    <button class="btn btn-secondary w-full" onclick="closeSummary()">Cerrar</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-outline w-full" onclick="copySummary()">
+                            <i data-lucide="copy"></i> Copiar
+                        </button>
+                        <button class="btn btn-outline w-full" onclick="window.print()">
+                            <i data-lucide="printer"></i> PDF
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary w-full" style="margin-top: 10px;" onclick="closeSummary()">Seguir Editando</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="app.js?v=1.0.2"></script>
+    <script src="app.js?v=1.1.0"></script>
 </body>
 </html>
