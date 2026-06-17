@@ -21,12 +21,17 @@
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.1">
 </head>
 <body>
     <div class="app-container">
         <!-- Header -->
         <header class="main-header">
+            <div class="header-actions">
+                <button type="button" class="btn-icon" id="btn-toggle-dashboard" title="Administración">
+                    <i data-lucide="layout-dashboard"></i>
+                </button>
+            </div>
             <div class="logo">
                 <span class="logo-accent">Miche</span> Nails & Beauty
             </div>
@@ -34,7 +39,7 @@
             <p class="subtitle">Personaliza y calcula tu presupuesto ideal</p>
         </header>
 
-        <main class="content">
+        <main class="content" id="main-calculator">
             <!-- Services List Container -->
             <div id="all-services-container">
                 <!-- Service blocks will be injected here -->
@@ -42,9 +47,41 @@
 
             <!-- Add Service Button -->
             <div class="add-service-section">
-                <button class="btn-add-service" onclick="addNewService()">
+                <button type="button" class="btn-add-service" id="btn-add-service-main">
                     <i data-lucide="plus-circle"></i> Agregar otro servicio
                 </button>
+            </div>
+        </main>
+
+        <!-- Dashboard View (Initially Hidden) -->
+        <main class="content hidden" id="dashboard-view">
+            <div class="dashboard-header">
+                <button type="button" class="btn-secondary" id="btn-back-dashboard">
+                    <i data-lucide="arrow-left"></i> Volver
+                </button>
+                <h2>Panel de Control</h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Hoy</span>
+                    <span class="stat-value" id="stat-today">$0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Semana</span>
+                    <span class="stat-value" id="stat-week">$0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Mes</span>
+                    <span class="stat-value" id="stat-month">$0</span>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Ventas Recientes</h3>
+                <div id="recent-sales-list" class="list-container">
+                    <!-- Loaded via API -->
+                </div>
             </div>
         </main>
 
@@ -56,10 +93,10 @@
                     <span id="total-amount" class="total-value">$0</span>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-secondary" onclick="resetAll()" title="Reiniciar">
+                    <button type="button" class="btn-secondary" id="btn-reset-main" title="Reiniciar">
                         <i data-lucide="rotate-ccw"></i>
                     </button>
-                    <button class="btn btn-primary" onclick="showSummary()">
+                    <button type="button" class="btn-primary" id="btn-show-summary-main">
                         <i data-lucide="sparkles"></i> Cotizar
                     </button>
                 </div>
@@ -71,7 +108,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Resumen de Cotización</h2>
-                    <button class="btn btn-secondary" style="width: 40px; padding: 0;" onclick="closeSummary()">&times;</button>
+                    <button type="button" class="btn btn-secondary btn-close-summary" style="width: 40px; padding: 0;">&times;</button>
                 </div>
                 
                 <div class="modal-body">
@@ -85,26 +122,54 @@
                             <!-- Details injected here -->
                         </div>
                     </div>
+
+                    <!-- Client Info Form (NEW) -->
+                    <div class="client-info-form">
+                        <h3>Datos de la Venta</h3>
+                        <div class="form-group">
+                            <label>Nombre de la Clienta</label>
+                            <input type="text" id="client-name" placeholder="Ej: Maria Lopez">
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono (WhatsApp)</label>
+                            <input type="tel" id="client-phone" placeholder="Ej: 3001234567">
+                        </div>
+                        <div class="form-group">
+                            <label>Método de Pago</label>
+                            <select id="payment-method">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Nequi">Nequi / Daviplata</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Observaciones</label>
+                            <textarea id="observations" rows="2" placeholder="Detalles adicionales..."></textarea>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="modal-footer vertical">
-                    <button class="btn btn-whatsapp w-full" onclick="shareWhatsApp()">
+                    <button type="button" class="btn btn-primary w-full" id="btn-save-sale">
+                        <i data-lucide="save"></i> Registrar Venta en DB
+                    </button>
+                    <button type="button" class="btn btn-whatsapp w-full" id="btn-share-whatsapp">
                         <i data-lucide="message-circle"></i> Agendar por WhatsApp
                     </button>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button class="btn btn-outline w-full" onclick="copySummary()">
+                        <button type="button" class="btn btn-outline w-full" id="btn-copy-summary">
                             <i data-lucide="copy"></i> Copiar
                         </button>
-                        <button class="btn btn-outline w-full" onclick="window.print()">
+                        <button type="button" class="btn btn-outline w-full" id="btn-print-summary">
                             <i data-lucide="printer"></i> PDF
                         </button>
                     </div>
-                    <button class="btn btn-secondary w-full" style="margin-top: 10px;" onclick="closeSummary()">Seguir Editando</button>
+                    <button type="button" class="btn btn-secondary w-full btn-close-summary" style="margin-top: 10px;">Seguir Editando</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="app.js?v=1.1.0"></script>
+    <script src="app.js?v=1.1"></script>
 </body>
 </html>

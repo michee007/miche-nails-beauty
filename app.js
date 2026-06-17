@@ -1,3 +1,12 @@
+// Global Reload Prevention & SPA Architecture
+document.addEventListener('submit', (e) => e.preventDefault(), true);
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        return false;
+    }
+}, true);
+
 // Pricing Data
 const DATA = {
     services: [
@@ -54,7 +63,10 @@ function createInitialServiceState() {
         selectedExtras: [],
         selectedDecorations: {},
         extraTones: 0,
-        selectedRemovals: []
+        selectedRemovals: [],
+        deliveryEnabled: false,
+        deliveryType: 'cerca', // options: cerca, medio, lejos, custom
+        customDeliveryValue: 0,
     };
 }
 
@@ -85,7 +97,7 @@ function renderAll() {
             <div class="service-block-header">
                 <span class="service-block-title">Servicio #${index + 1}</span>
                 ${servicesState.length > 1 ? `
-                    <button class="btn-delete-service" onclick="removeService(${index})">
+                    <button type="button" class="btn-delete-service" data-action="remove-service" data-index="${index}">
                         <i data-lucide="trash-2" style="width:18px"></i>
                     </button>
                 ` : ''}
@@ -93,14 +105,14 @@ function renderAll() {
             
             <!-- 1. Servicio Principal -->
             <div class="accordion-item open" id="section-main-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('section-main-${index}')">
+                <div class="accordion-header" data-action="toggle-accordion" data-target="section-main-${index}">
                     <h2 class="section-title"><i data-lucide="sparkles"></i> 1. Servicio Principal</h2>
                     <i data-lucide="chevron-down" class="chevron"></i>
                 </div>
                 <div class="accordion-content">
                     <div class="grid-cards">
                         ${DATA.services.map(s => `
-                            <div class="card ${state.selectedService?.id === s.id ? 'selected' : ''}" onclick="selectService(${index}, '${s.id}')">
+                            <div class="card ${state.selectedService?.id === s.id ? 'selected' : ''}" data-action="select-service" data-index="${index}" data-id="${s.id}">
                                 <h3>${s.name}</h3>
                                 <p class="price">${s.price > 0 ? formatCurrency(s.price) : 'Desde ' + formatCurrency(Math.min(...Object.values(s.lengths)))}</p>
                             </div>
@@ -111,7 +123,7 @@ function renderAll() {
 
             <!-- 2. Selección de Largo -->
             <div class="accordion-item ${state.selectedService?.hasLength ? '' : 'hidden'}" id="length-section-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('length-section-${index}')">
+                <div class="accordion-header" data-action="toggle-accordion" data-target="length-section-${index}">
                     <h2 class="section-title"><i data-lucide="maximize"></i> 2. Selección de Largo</h2>
                     <i data-lucide="chevron-down" class="chevron"></i>
                 </div>
@@ -122,34 +134,16 @@ function renderAll() {
                 </div>
             </div>
 
-            <!-- 3. Diseño -->
-            <div class="accordion-item" id="section-design-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('section-design-${index}')">
-                    <h2 class="section-title"><i data-lucide="palette"></i> 3. Diseño</h2>
-                    <i data-lucide="chevron-down" class="chevron"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="grid-cards">
-                        ${DATA.designs.map(d => `
-                            <div class="card ${state.selectedDesign === d.id ? 'selected' : ''}" onclick="selectDesign(${index}, '${d.id}')">
-                                <h3>${d.name}</h3>
-                                <p class="price">${d.price > 0 ? '+' + formatCurrency(d.price) : 'Gratis'}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Extras -->
+            <!-- 3. Extras -->
             <div class="accordion-item" id="section-extras-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('section-extras-${index}')">
-                    <h2 class="section-title"><i data-lucide="plus-circle"></i> 4. Extras</h2>
+                <div class="accordion-header" data-action="toggle-accordion" data-target="section-extras-${index}">
+                    <h2 class="section-title"><i data-lucide="plus-circle"></i> 3. Extras</h2>
                     <i data-lucide="chevron-down" class="chevron"></i>
                 </div>
                 <div class="accordion-content">
                     <div class="list-options">
                         ${DATA.extras.map(e => `
-                            <div class="option-item ${state.selectedExtras.includes(e.id) ? 'selected' : ''}" onclick="toggleExtra(${index}, '${e.id}')">
+                            <div class="option-item ${state.selectedExtras.includes(e.id) ? 'selected' : ''}" data-action="toggle-extra" data-index="${index}" data-id="${e.id}">
                                 <div class="option-info">
                                     <h3>${e.name}</h3>
                                     <p>+ ${formatCurrency(e.price)}</p>
@@ -161,10 +155,10 @@ function renderAll() {
                 </div>
             </div>
 
-            <!-- 5. Decoraciones -->
+            <!-- 4. Decoraciones -->
             <div class="accordion-item" id="section-decorations-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('section-decorations-${index}')">
-                    <h2 class="section-title"><i data-lucide="gem"></i> 5. Decoraciones</h2>
+                <div class="accordion-header" data-action="toggle-accordion" data-target="section-decorations-${index}">
+                    <h2 class="section-title"><i data-lucide="gem"></i> 4. Decoraciones</h2>
                     <i data-lucide="chevron-down" class="chevron"></i>
                 </div>
                 <div class="accordion-content">
@@ -178,9 +172,9 @@ function renderAll() {
                                         <p>${formatCurrency(d.price)} c/u</p>
                                     </div>
                                     <div class="counter-controls">
-                                        <button class="btn-counter" onclick="updateDeco(${index}, '${d.id}', -1)"><i data-lucide="minus"></i></button>
+                                        <button type="button" class="btn-counter" data-action="update-deco" data-index="${index}" data-id="${d.id}" data-change="-1"><i data-lucide="minus"></i></button>
                                         <span class="count-value">${count}</span>
-                                        <button class="btn-counter" onclick="updateDeco(${index}, '${d.id}', 1)"><i data-lucide="plus"></i></button>
+                                        <button type="button" class="btn-counter" data-action="update-deco" data-index="${index}" data-id="${d.id}" data-change="1"><i data-lucide="plus"></i></button>
                                     </div>
                                 </div>
                             `;
@@ -189,10 +183,10 @@ function renderAll() {
                 </div>
             </div>
 
-            <!-- 6. Tonos Extra -->
+            <!-- 5. Tonos Extra -->
             <div class="accordion-item" id="section-tones-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('section-tones-${index}')">
-                    <h2 class="section-title"><i data-lucide="droplet"></i> 6. Tonos Extra</h2>
+                <div class="accordion-header" data-action="toggle-accordion" data-target="section-tones-${index}">
+                    <h2 class="section-title"><i data-lucide="droplet"></i> 5. Tonos Extra</h2>
                     <i data-lucide="chevron-down" class="chevron"></i>
                 </div>
                 <div class="accordion-content">
@@ -202,24 +196,24 @@ function renderAll() {
                             <p>$1.000 por tono</p>
                         </div>
                         <div class="counter-controls">
-                            <button class="btn-counter" onclick="updateTones(${index}, -1)"><i data-lucide="minus"></i></button>
+                            <button type="button" class="btn-counter" data-action="update-tones" data-index="${index}" data-change="-1"><i data-lucide="minus"></i></button>
                             <span class="count-value">${state.extraTones}</span>
-                            <button class="btn-counter" onclick="updateTones(${index}, 1)"><i data-lucide="plus"></i></button>
+                            <button type="button" class="btn-counter" data-action="update-tones" data-index="${index}" data-change="1"><i data-lucide="plus"></i></button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 7. Retiros -->
+            <!-- 6. Retiros -->
             <div class="accordion-item" id="section-removals-${index}">
-                <div class="accordion-header" onclick="toggleAccordion('section-removals-${index}')">
-                    <h2 class="section-title"><i data-lucide="trash-2"></i> 7. Retiros</h2>
+                <div class="accordion-header" data-action="toggle-accordion" data-target="section-removals-${index}">
+                    <h2 class="section-title"><i data-lucide="trash-2"></i> 6. Retiros</h2>
                     <i data-lucide="chevron-down" class="chevron"></i>
                 </div>
                 <div class="accordion-content">
                     <div class="list-options">
                         ${DATA.removals.map(r => `
-                            <div class="option-item ${state.selectedRemovals.includes(r.id) ? 'selected' : ''}" onclick="toggleRemoval(${index}, '${r.id}')">
+                            <div class="option-item ${state.selectedRemovals.includes(r.id) ? 'selected' : ''}" data-action="toggle-removal" data-index="${index}" data-id="${r.id}">
                                 <div class="option-info">
                                     <h3>${r.name}</h3>
                                     <p>+ ${formatCurrency(r.price)}</p>
@@ -231,7 +225,8 @@ function renderAll() {
                 </div>
             </div>
 
-            <div style="text-align: right; padding: 10px 15px; font-weight: 700; color: var(--gold-dark); font-size: 0.9rem;">
+
+            <div id="subtotal-serv-${index}" style="text-align: right; padding: 10px 15px; font-weight: 700; color: var(--gold-dark); font-size: 0.9rem;">
                 Subtotal Servicio #${index + 1}: ${formatCurrency(subtotal)}
             </div>
         `;
@@ -250,7 +245,7 @@ function renderLengthsHtml(index, state) {
         { id: 'long', name: 'Largas', price: s.lengths.long }
     ];
     return lengths.map(l => `
-        <div class="card ${state.selectedLength === l.id ? 'selected' : ''}" onclick="selectLength(${index}, '${l.id}')">
+        <div class="card ${state.selectedLength === l.id ? 'selected' : ''}" data-action="select-length" data-index="${index}" data-id="${l.id}">
             <h3>${l.name}</h3>
             <p class="price">${formatCurrency(l.price)}</p>
         </div>
@@ -258,84 +253,181 @@ function renderLengthsHtml(index, state) {
 }
 
 // Logic Actions
-window.addNewService = () => {
+window.addNewService = (event) => {
+    if (event) event.preventDefault();
     servicesState.push(createInitialServiceState());
     renderAll();
-    // Scroll to new service
     setTimeout(() => {
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }, 100);
 };
 
-window.removeService = (index) => {
+window.removeService = (event, index) => {
+    if (event) event.preventDefault();
     if (confirm('¿Eliminar este servicio?')) {
         servicesState.splice(index, 1);
         renderAll();
     }
 };
 
-window.selectService = (index, id) => {
+window.selectService = (event, index, id) => {
+    if (event) event.preventDefault();
     const service = DATA.services.find(s => s.id === id);
     const state = servicesState[index];
     state.selectedService = service;
     
+    const section = document.getElementById(`section-main-${index}`);
+    if (section) {
+        section.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        const card = section.querySelector(`.card[data-id="${id}"]`);
+        if (card) card.classList.add('selected');
+    }
+
+    const lengthSection = document.getElementById(`length-section-${index}`);
     if (service.hasLength) {
         if (!state.selectedLength) state.selectedLength = 'short';
-        renderAll();
+        if (lengthSection) {
+            lengthSection.classList.remove('hidden');
+            const grid = lengthSection.querySelector('.grid-cards');
+            if (grid) {
+                grid.innerHTML = renderLengthsHtml(index, state);
+                lucide.createIcons();
+            }
+        }
+        updateSubtotal(index);
         openAccordion(`length-section-${index}`);
     } else {
         state.selectedLength = null;
-        renderAll();
-        // Skip length and open design
-        openAccordion(`section-design-${index}`);
+        if (lengthSection) {
+            lengthSection.classList.add('hidden');
+            const grid = lengthSection.querySelector('.grid-cards');
+            if (grid) grid.innerHTML = '';
+        }
+        updateSubtotal(index);
+        openAccordion(`section-extras-${index}`);
     }
 };
 
-window.selectLength = (index, id) => {
+window.selectLength = (event, index, id) => {
+    if (event) event.preventDefault();
     servicesState[index].selectedLength = id;
-    renderAll();
-    openAccordion(`section-design-${index}`);
+    
+    const section = document.getElementById(`length-section-${index}`);
+    if (section) {
+        section.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        const card = section.querySelector(`.card[data-id="${id}"]`);
+        if (card) card.classList.add('selected');
+    }
+    updateSubtotal(index);
+    openAccordion(`section-extras-${index}`);
 };
 
-window.selectDesign = (index, id) => {
+window.selectDesign = (event, index, id) => {
+    // Hidden visual section, but keep function just in case
+    if (event) event.preventDefault();
     servicesState[index].selectedDesign = id;
-    renderAll();
+    updateSubtotal(index);
 };
 
-window.toggleExtra = (index, id) => {
+window.toggleExtra = (event, index, id) => {
+    if (event) event.preventDefault();
     const state = servicesState[index];
     if (state.selectedExtras.includes(id)) {
         state.selectedExtras = state.selectedExtras.filter(e => e !== id);
     } else {
         state.selectedExtras.push(id);
     }
-    renderAll();
+    
+    const section = document.getElementById(`section-extras-${index}`);
+    if (section) {
+        const item = section.querySelector(`.option-item[data-id="${id}"]`);
+        if (item) {
+            const isSelected = state.selectedExtras.includes(id);
+            item.classList.toggle('selected', isSelected);
+            const i = item.querySelector('i, svg');
+            if (i) {
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', isSelected ? 'check-circle' : 'circle');
+                i.replaceWith(newIcon);
+                lucide.createIcons();
+            }
+        }
+    }
+    updateSubtotal(index);
 };
 
-window.updateDeco = (index, id, change) => {
+window.updateDeco = (event, index, id, change) => {
+    if (event) event.preventDefault();
     const state = servicesState[index];
     const current = state.selectedDecorations[id] || 0;
     const newVal = Math.max(0, current + change);
     if (newVal === 0) delete state.selectedDecorations[id];
     else state.selectedDecorations[id] = newVal;
-    renderAll();
+    
+    const section = document.getElementById(`section-decorations-${index}`);
+    if (section) {
+        const btn = section.querySelector(`.btn-counter[data-id="${id}"]`);
+        if (btn) {
+            const span = btn.parentElement.querySelector('.count-value');
+            if (span) span.innerText = newVal;
+        }
+    }
+    updateSubtotal(index);
 };
 
-window.updateTones = (index, change) => {
+window.updateTones = (event, index, change) => {
+    if (event) event.preventDefault();
     const state = servicesState[index];
     state.extraTones = Math.max(0, state.extraTones + change);
-    renderAll();
+    
+    const section = document.getElementById(`section-tones-${index}`);
+    if (section) {
+        const span = section.querySelector('.count-value');
+        if (span) span.innerText = state.extraTones;
+    }
+    updateSubtotal(index);
 };
 
-window.toggleRemoval = (index, id) => {
+window.toggleRemoval = (event, index, id) => {
+    if (event) event.preventDefault();
     const state = servicesState[index];
     if (state.selectedRemovals.includes(id)) {
         state.selectedRemovals = state.selectedRemovals.filter(r => r !== id);
     } else {
         state.selectedRemovals.push(id);
     }
-    renderAll();
+    
+    const section = document.getElementById(`section-removals-${index}`);
+    if (section) {
+        const item = section.querySelector(`.option-item[data-id="${id}"]`);
+        if (item) {
+            const isSelected = state.selectedRemovals.includes(id);
+            item.classList.toggle('selected', isSelected);
+            const i = item.querySelector('i, svg');
+            if (i) {
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', isSelected ? 'check-circle' : 'circle');
+                i.replaceWith(newIcon);
+                lucide.createIcons();
+            }
+        }
+    }
+    updateSubtotal(index);
 };
+
+function updateSubtotal(index) {
+    const state = servicesState[index];
+    const subtotal = calculateSubtotal(state);
+    
+    const subtotalEl = document.getElementById(`subtotal-serv-${index}`);
+    if (subtotalEl) {
+        subtotalEl.innerText = `Subtotal Servicio #${index + 1}: ${formatCurrency(subtotal)}`;
+    }
+    
+    let grandTotal = 0;
+    servicesState.forEach(s => grandTotal += calculateSubtotal(s));
+    totalAmountEl.innerText = formatCurrency(grandTotal);
+}
 
 // Utilities
 function calculateSubtotal(state) {
@@ -348,8 +440,8 @@ function calculateSubtotal(state) {
             total += state.selectedService.price;
         }
     }
-    const design = DATA.designs.find(d => d.id === state.selectedDesign);
-    if (design) total += design.price;
+    // const design = DATA.designs.find(d => d.id === state.selectedDesign);
+    // if (design) total += design.price;
     state.selectedExtras.forEach(id => {
         const extra = DATA.extras.find(e => e.id === id);
         if (extra) total += extra.price;
@@ -374,11 +466,10 @@ function formatCurrency(value) {
     }).format(value).replace('COP', '').trim();
 }
 
-window.toggleAccordion = (id) => {
+window.toggleAccordion = (event, id) => {
+    if (event) event.preventDefault();
     const item = document.getElementById(id);
     if (item) {
-        const isOpen = item.classList.contains('open');
-        // Close others in same service block if needed? No, better keep current flow.
         item.classList.toggle('open');
     }
 };
@@ -391,16 +482,17 @@ function openAccordion(id) {
     }
 }
 
-window.resetAll = () => {
-    if (confirm('¿Deseas reiniciar toda la cotización?')) {
+window.resetAll = (silent = false) => {
+    if (silent || confirm('¿Deseas reiniciar toda la cotización?')) {
         servicesState = [createInitialServiceState()];
         renderAll();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (!silent) window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 };
 
 // Modal Summary
-window.showSummary = () => {
+window.showSummary = (event) => {
+    if (event) event.preventDefault();
     const modal = document.getElementById('summary-modal');
     const details = document.getElementById('summary-details');
     let html = '';
@@ -421,8 +513,8 @@ window.showSummary = () => {
         
         html += `<div class="summary-item"><span class="item-label">${state.selectedService.name} ${lengthName ? '('+lengthName+')' : ''}</span><span class="item-price">${formatCurrency(servicePrice)}</span></div>`;
 
-        const design = DATA.designs.find(d => d.id === state.selectedDesign);
-        if (design && design.price > 0) html += `<div class="summary-item"><span class="item-label">Diseño: ${design.name}</span><span class="item-price">+ ${formatCurrency(design.price)}</span></div>`;
+        // const design = DATA.designs.find(d => d.id === state.selectedDesign);
+        // if (design && design.price > 0) html += `<div class="summary-item"><span class="item-label">Diseño: ${design.name}</span><span class="item-price">+ ${formatCurrency(design.price)}</span></div>`;
 
         state.selectedExtras.forEach(id => {
             const e = DATA.extras.find(x => x.id === id);
@@ -440,6 +532,8 @@ window.showSummary = () => {
             const r = DATA.removals.find(x => x.id === id);
             html += `<div class="summary-item"><span class="item-label">${r.name}</span><span class="item-price">+ ${formatCurrency(r.price)}</span></div>`;
         });
+        
+
 
         html += `<div class="summary-item" style="font-weight:700; border-top: 1px dotted var(--gold-light); margin-top: 5px; padding-top: 5px;"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div></div>`;
     });
@@ -455,11 +549,13 @@ window.showSummary = () => {
     lucide.createIcons();
 };
 
-window.closeSummary = () => {
+window.closeSummary = (event) => {
+    if (event) event.preventDefault();
     document.getElementById('summary-modal').style.display = 'none';
 };
 
-window.copySummary = () => {
+window.copySummary = (event) => {
+    if (event) event.preventDefault();
     let grandTotal = 0;
     let text = `🌸 *Miche Nails & Beauty* 🌸\n*Mi Cotización*\n---------------------------\n`;
 
@@ -484,7 +580,8 @@ window.copySummary = () => {
     });
 };
 
-window.shareWhatsApp = () => {
+window.shareWhatsApp = (event) => {
+    if (event) event.preventDefault();
     let grandTotal = 0;
     let text = `Hola *Miche Nails & Beauty*! 🌸\n\nHe realizado una cotización en tu App:\n\n`;
 
@@ -497,8 +594,8 @@ window.shareWhatsApp = () => {
         
         text += `📌 *${state.selectedService.name}* ${lengthName ? '['+lengthName+']' : ''}\n`;
         
-        const design = DATA.designs.find(d => d.id === state.selectedDesign);
-        if (design && design.price > 0) text += `   - Diseño: ${design.name}\n`;
+        // const design = DATA.designs.find(d => d.id === state.selectedDesign);
+        // if (design && design.price > 0) text += `   - Diseño: ${design.name}\n`;
         
         state.selectedExtras.forEach(id => {
             const e = DATA.extras.find(x => x.id === id);
@@ -523,14 +620,161 @@ window.shareWhatsApp = () => {
     text += `💎 *TOTAL ESTIMADO*: ${formatCurrency(grandTotal)}\n\n¿Tienes disponibilidad para agendar? ✨`;
     
     const encodedText = encodeURIComponent(text);
-    window.open(`https://wa.me/573000000000?text=${encodedText}`, '_blank'); // Replace with actual number if provided
+    window.open(`https://wa.me/573000000000?text=${encodedText}`, '_blank');
 };
+
+// API Integration
+const API_URL = 'http://localhost:3000/api';
+
+window.toggleDashboard = async (event) => {
+    if (event) event.preventDefault();
+    const calc = document.getElementById('main-calculator');
+    const dash = document.getElementById('dashboard-view');
+    const footer = document.querySelector('.sticky-footer');
+    
+    if (dash.classList.contains('hidden')) {
+        calc.classList.add('hidden');
+        footer.classList.add('hidden');
+        dash.classList.remove('hidden');
+        await loadDashboardStats();
+    } else {
+        dash.classList.add('hidden');
+        calc.classList.remove('hidden');
+        footer.classList.remove('hidden');
+    }
+};
+
+window.saveSale = async (event) => {
+    if (event) event.preventDefault();
+    const btn = document.getElementById('btn-save-sale');
+    const clientName = document.getElementById('client-name').value;
+    const clientPhone = document.getElementById('client-phone').value;
+    const paymentMethod = document.getElementById('payment-method').value;
+    const observations = document.getElementById('observations').value;
+
+    if (!clientName) {
+        alert('Por favor ingresa el nombre de la clienta');
+        return;
+    }
+
+    const saleData = {
+        client: { name: clientName, phone: clientPhone },
+        total: servicesState.reduce((sum, s) => sum + calculateSubtotal(s), 0),
+        paymentMethod,
+        observations,
+        items: servicesState.filter(s => s.selectedService).map(s => ({
+            name: s.selectedService.name,
+            subtotal: calculateSubtotal(s),
+            details: {
+                length: s.selectedLength,
+                design: s.selectedDesign,
+                extras: s.selectedExtras,
+                decorations: s.selectedDecorations,
+                tones: s.extraTones,
+                removals: s.selectedRemovals
+            }
+        }))
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader"></i> Guardando...';
+    lucide.createIcons();
+
+    try {
+        const response = await fetch(`${API_URL}/sales`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(saleData)
+        });
+
+        if (response.ok) {
+            alert('Venta registrada con éxito 🌸');
+            closeSummary();
+            resetAll(true);
+        } else {
+            throw new Error('Error en el servidor');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('No se pudo conectar con el servidor. Verifica que esté corriendo.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save"></i> Registrar Venta en DB';
+        lucide.createIcons();
+    }
+};
+
+async function loadDashboardStats() {
+    try {
+        const response = await fetch(`${API_URL}/dashboard/stats`);
+        const data = await response.json();
+
+        document.getElementById('stat-today').innerText = formatCurrency(data.today);
+        document.getElementById('stat-week').innerText = formatCurrency(data.weekly);
+        document.getElementById('stat-month').innerText = formatCurrency(data.monthly);
+
+        renderRecentSales(data.recentSales);
+    } catch (err) {
+        console.error('Error cargando estadísticas:', err);
+    }
+}
+
+function renderRecentSales(sales) {
+    const list = document.getElementById('recent-sales-list');
+    if (!sales || sales.length === 0) {
+        list.innerHTML = '<p style="text-align:center; opacity:0.5; padding: 20px;">No hay ventas registradas.</p>';
+        return;
+    }
+
+    list.innerHTML = sales.map(sale => `
+        <div class="sale-item-card">
+            <div class="sale-info">
+                <span class="sale-client">${sale.cliente_nombre}</span>
+                <span class="sale-date">${new Date(sale.created_at).toLocaleDateString()} - ${sale.metodo_pago}</span>
+            </div>
+            <span class="sale-amount">${formatCurrency(sale.total)}</span>
+        </div>
+    `).join('');
+}
+
+// Centralized Event Master
+document.addEventListener('click', async (e) => {
+    const target = e.target.closest('[data-action], [id^="btn-"], .btn-close-summary');
+    if (!target) return;
+
+    e.preventDefault();
+    const action = target.dataset.action;
+    const index = parseInt(target.dataset.index);
+    const id = target.dataset.id;
+
+    if (action === 'toggle-accordion') toggleAccordion(null, target.dataset.target);
+    else if (action === 'select-service') selectService(null, index, id);
+    else if (action === 'select-length') selectLength(null, index, id);
+    else if (action === 'select-design') selectDesign(null, index, id);
+    else if (action === 'toggle-extra') toggleExtra(null, index, id);
+    else if (action === 'update-deco') updateDeco(null, index, id, parseInt(target.dataset.change));
+    else if (action === 'update-tones') updateTones(null, index, parseInt(target.dataset.change));
+    else if (action === 'toggle-removal') toggleRemoval(null, index, id);
+    else if (action === 'remove-service') removeService(null, index);
+
+    else if (target.id === 'btn-toggle-dashboard' || target.id === 'btn-back-dashboard') toggleDashboard(null);
+    else if (target.id === 'btn-add-service-main') addNewService(null);
+    else if (target.id === 'btn-reset-main') resetAll(null);
+    else if (target.id === 'btn-show-summary-main') showSummary(null);
+    else if (target.classList.contains('btn-close-summary')) closeSummary(null);
+    else if (target.id === 'btn-save-sale') saveSale(null);
+    else if (target.id === 'btn-share-whatsapp') shareWhatsApp(null);
+    else if (target.id === 'btn-copy-summary') copySummary(e); // Copy needs event for currentTarget
+    else if (target.id === 'btn-print-summary') window.print();
+
+    return false;
+}, true);
 
 // Close modal when clicking outside
 window.onclick = (event) => {
     const modal = document.getElementById('summary-modal');
     if (event.target == modal) {
-        closeSummary();
+        closeSummary(null);
     }
 };
 
